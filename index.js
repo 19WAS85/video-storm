@@ -9,6 +9,7 @@ const WEB_PORT = PORT + 1
 io.on('connection', (socket) => {
   console.log('Conected')
   socket.on('disconnect', () => console.log('Disconnected'))
+  socket.on('image', (data) => socket.compress(false).broadcast.emit('image-sent', data))
 })
 
 app.use(express.static('public'))

@@ -6,11 +6,36 @@
     <title>video-storm</title>
   </head>
   <body>
+    <video id="player" autoplay></video>
+    <canvas id="my-canvas" width="320" height="240"></canvas>
+    <canvas id="other-canvas" width="320" height="240"></canvas>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>
     <script>
       const socket = io('http://localhost:3160')
+      const myCanvas = document.querySelector('#my-canvas');
+      const otherCanvas = document.querySelector('#other-canvas');
+      const myContext = myCanvas.getContext('2d');
+      const otherContext = otherCanvas.getContext('2d');
+
       socket.on('connect', () => console.log('Connected'))
       socket.on('disconnect', () => console.log('Disconnected'))
+      socket.on('image', () => console.log('image'))
+      socket.on('image-sent', (data) => {
+        var clampedArray = new Uint8ClampedArray(data)
+        const imageData = new ImageData(clampedArray, 320, 240)
+        otherContext.putImageData(imageData, 0, 0)
+      })
+
+      navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
+        document.getElementById('player').srcObject = stream
+      })
+
+      setInterval(() => {
+        myContext.drawImage(player, 0, 0, myCanvas.width, myCanvas.height);
+        const imageData = myContext.getImageData(0, 0, myCanvas.width, myCanvas.height)
+        const dataArray = Array.prototype.slice.call(imageData.data)
+        socket.emit('image', dataArray)
+      }, 1000)
     </script>
   </body>
 </html>
