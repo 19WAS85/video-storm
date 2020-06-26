@@ -7,31 +7,35 @@
   </head>
   <body>
     <video id="player" autoplay></video>
-    <canvas id="my-canvas" style="display: none" width="160" height="120"></canvas>
+    <canvas id="my-canvas" style="display: none" width="320" height="240"></canvas>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>
     <script>
-      const WIDTH = 160
-      const HEIGHT = 120
+      const WIDTH = 320
+      const HEIGHT = 240
+      const IMAGE_QUALITY = 0.5
+      const IMAGE_INTERVAL = 1000
+      const IMAGE_JPEG = 'image/jpeg'
+
       const uid = Math.random().toString(36).split('.')[1]
       const socket = io('http://localhost:3160')
       const myCanvas = document.querySelector('#my-canvas')
-      const myContext = myCanvas.getContext('2d')
-      const clientCanvas = { }
+      const clientImages = { }
 
       socket.on('connect', () => console.log('Connected'))
       socket.on('disconnect', () => console.log('Disconnected'))
 
       socket.on('image-sent', (uid, data) => {
-        if (!clientCanvas[uid]) {
-          const newCanvas = document.createElement('canvas')
-          newCanvas.width = WIDTH
-          newCanvas.height = HEIGHT
-          document.body.appendChild(newCanvas)
-          clientCanvas[uid] = newCanvas
+        if (!clientImages[uid]) {
+          const newImage = document.createElement('img')
+          newImage.width = WIDTH
+          newImage.height = HEIGHT
+          document.body.appendChild(newImage)
+          clientImages[uid] = newImage
         }
-        var clampedArray = new Uint8ClampedArray(data)
-        const imageData = new ImageData(clampedArray, WIDTH, HEIGHT)
-        clientCanvas[uid].getContext('2d').putImageData(imageData, 0, 0)
+        var arrayBufferView = new Uint8Array(data)
+        var blob = new Blob([arrayBufferView], { type: IMAGE_JPEG })
+        var imageUrl = (window.URL || window.webkitURL).createObjectURL(blob)
+        clientImages[uid].src = imageUrl
       })
 
       navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
@@ -39,11 +43,11 @@
       })
 
       setInterval(() => {
-        myContext.drawImage(player, 0, 0, WIDTH, HEIGHT)
-        const imageData = myContext.getImageData(0, 0, WIDTH, HEIGHT)
-        const dataArray = Array.prototype.slice.call(imageData.data)
-        socket.emit('new-image', uid, dataArray)
-      }, 1000)
+        myCanvas.getContext('2d').drawImage(player, 0, 0, WIDTH, HEIGHT)
+        myCanvas.toBlob((result) => {
+          socket.emit('new-image', uid, result)
+        }, IMAGE_JPEG, IMAGE_QUALITY)
+      }, IMAGE_INTERVAL)
     </script>
   </body>
 </html>
