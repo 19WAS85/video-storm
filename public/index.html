@@ -7,8 +7,8 @@
   </head>
   <body>
     <video id="player" autoplay></video>
-    <canvas id="my-canvas" width="320" height="240"></canvas>
-    <canvas id="other-canvas" width="320" height="240"></canvas>
+    <canvas id="my-canvas" width="160" height="120"></canvas>
+    <canvas id="other-canvas" width="160" height="120"></canvas>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>
     <script>
       const socket = io('http://localhost:3160')
@@ -22,7 +22,7 @@
       socket.on('image', () => console.log('image'))
       socket.on('image-sent', (data) => {
         var clampedArray = new Uint8ClampedArray(data)
-        const imageData = new ImageData(clampedArray, 320, 240)
+        const imageData = new ImageData(clampedArray, 160, 120)
         otherContext.putImageData(imageData, 0, 0)
       })
 
@@ -35,7 +35,7 @@
         const imageData = myContext.getImageData(0, 0, myCanvas.width, myCanvas.height)
         const dataArray = Array.prototype.slice.call(imageData.data)
         socket.emit('image', dataArray)
-      }, 1000)
+      }, 5000)
     </script>
   </body>
 </html>
