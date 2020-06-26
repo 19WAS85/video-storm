@@ -7,23 +7,29 @@
   </head>
   <body>
     <video id="player" autoplay></video>
-    <canvas id="my-canvas" width="160" height="120"></canvas>
-    <canvas id="other-canvas" width="160" height="120"></canvas>
+    <canvas id="my-canvas" style="display: none" width="160" height="120"></canvas>
     <script src="https://cdn.jsdelivr.net/npm/socket.io-client@2/dist/socket.io.js"></script>
     <script>
+      const uid = Math.random().toString(36).split('.')[1]
       const socket = io('http://localhost:3160')
-      const myCanvas = document.querySelector('#my-canvas');
-      const otherCanvas = document.querySelector('#other-canvas');
-      const myContext = myCanvas.getContext('2d');
-      const otherContext = otherCanvas.getContext('2d');
+      const myCanvas = document.querySelector('#my-canvas')
+      const clientCanvas = { }
 
       socket.on('connect', () => console.log('Connected'))
       socket.on('disconnect', () => console.log('Disconnected'))
       socket.on('image', () => console.log('image'))
-      socket.on('image-sent', (data) => {
+
+      socket.on('image-sent', (uid, data) => {
+        if (!clientCanvas[uid]) {
+          const newCanvas = document.createElement('canvas')
+          newCanvas.width = 160
+          newCanvas.height = 120
+          document.body.appendChild(newCanvas)
+          clientCanvas[uid] = newCanvas
+        }
         var clampedArray = new Uint8ClampedArray(data)
         const imageData = new ImageData(clampedArray, 160, 120)
-        otherContext.putImageData(imageData, 0, 0)
+        clientCanvas[uid].getContext('2d').putImageData(imageData, 0, 0)
       })
 
       navigator.mediaDevices.getUserMedia({ video: true }).then((stream) => {
@@ -31,11 +37,11 @@
       })
 
       setInterval(() => {
-        myContext.drawImage(player, 0, 0, myCanvas.width, myCanvas.height);
-        const imageData = myContext.getImageData(0, 0, myCanvas.width, myCanvas.height)
+        myCanvas.getContext('2d').drawImage(player, 0, 0, myCanvas.width, myCanvas.height)
+        const imageData = myCanvas.getContext('2d').getImageData(0, 0, myCanvas.width, myCanvas.height)
         const dataArray = Array.prototype.slice.call(imageData.data)
-        socket.emit('image', dataArray)
-      }, 5000)
+        socket.emit('image', uid, dataArray)
+      }, 1000)
     </script>
   </body>
 </html>
